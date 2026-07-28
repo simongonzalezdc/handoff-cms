@@ -15,7 +15,9 @@
     "typecheck": "pnpm --filter './packages/*' -r run typecheck",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "docs:check": "node scripts/docs-qa.mjs",
+    "test:docs": "node --test scripts/docs-qa.test.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",

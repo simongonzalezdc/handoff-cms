@@ -1,0 +1,106 @@
+name: Bug report
+description: Report a reproducible bug in the product or the documentation.
+title: "[Bug]: "
+labels:
+  - kind/bug
+  - area/triage
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. This is the canonical Forgejo repository
+        at `https://git.kyanitelabs.tech/simon/handoff-cms`. The GitHub
+        repository at `https://github.com/simongonzalezdc/handoff-cms` is a
+        read-only mirror; issues are tracked on the canonical instance.
+
+        > **Security.** If you believe the bug exposes a vulnerability, do
+        > not file a public issue. Follow the private disclosure process in
+        > [`SECURITY.md`](https://git.kyanitelabs.tech/simon/handoff-cms/blob/main/SECURITY.md)
+        > on the canonical repository. The docs-QA rules at
+        > [`docs/project/docs-qa.md`](https://git.kyanitelabs.tech/simon/handoff-cms/blob/main/docs/project/docs-qa.md)
+        > forbid real secrets in public issues.
+
+  - type: input
+    id: version
+    attributes:
+      label: Affected version
+      description: The exact release tag, commit SHA, or `package.json` version where the bug reproduces.
+      placeholder: "v0.x.y"
+    validations:
+      required: true
+
+  - type: input
+    id: locale
+    attributes:
+      label: Locale(s) affected
+      description: "Does the bug reproduce in `en`, `es`, or both? The docs QA same-PR EN/ES zero-lag rule means the answer must be one of these three values."
+      placeholder: "en / es / en+es"
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Reproduction evidence
+      description: |
+        The minimum reproducible trace: command, expected output, observed output, and (where applicable)
+        a `pnpm test` snippet or a `node --check` line. The docs-QA gate `DR5` requires that any claim
+        beginning with `verified`, `passing`, `tested`, or `supported` cites the evidence ledger at
+        `artifacts/g008/workspace-test-report.json` or the documentation page that records it.
+      placeholder: |
+        ```sh
+        $ pnpm test --filter @cms/<package>
+        # expected … observed …
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: locale-impact
+    attributes:
+      label: Locale impact
+      description: |
+        If the bug touches the documentation tree, list the EN `*.md` page and the ES `*.es.md` peer
+        that change together. The same-PR EN/ES zero-lag rule forbids changing only one sibling.
+        See `docs/project/docs-qa.md` §"Same-PR EN/ES zero-lag SLO".
+      placeholder: |
+        EN: docs/<area>/<page>.md
+        ES: docs/<area>/<page>.es.md
+        (Both ship in the same pull request.)
+    validations:
+      required: false
+
+  - type: dropdown
+    id: audience
+    attributes:
+      label: Affected audience
+      description: "The docs-QA audience matrix classifies every page under exactly one of the six audiences. Pick the one that owns the touched surface."
+      options:
+        - Client / end user (Handoff Beat author)
+        - Agency operator (managed compose stack)
+        - Self-hoster (full bring-up + hardening)
+        - Integrator / adapter builder (frozen `@cms/adapter-sdk`)
+        - Contributor (Forgejo canonical)
+        - Security reviewer (authority proofs)
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Anything else that helps the maintainer triage. Logs, screenshots, and links are welcome.
+
+  - type: checkboxes
+    id: author-confirmation
+    attributes:
+      label: Author confirmation
+      description: The bug report author confirms these checks.
+      options:
+        - label: I have reproduced the bug against the canonical repository at `https://git.kyanitelabs.tech/simon/handoff-cms`.
+          required: true
+        - label: I have read the docs-QA gates at `docs/project/docs-qa.md` and confirm none of DR1–DR7 forbids the bug report.
+          required: true
+        - label: I am not attaching a real secret, identifier, or copied request/log value.
+          required: true

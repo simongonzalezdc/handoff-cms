@@ -1,0 +1,153 @@
+name: Documentation issue
+description: Request a documentation change, raise a docs-QA gate failure, or report a documentation drift.
+title: "[Docs]: "
+labels:
+  - kind/docs
+  - area/docs-qa
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for documentation-only changes. The seven docs-QA gates
+        at [`docs/project/docs-qa.md`](https://git.kyanitelabs.tech/simon/handoff-cms/blob/main/docs/project/docs-qa.md)
+        (`DR1` … `DR7`) are the contract for the documentation tree; the issue
+        should name the gate that fails, or the prose change that introduced the
+        drift.
+
+        The canonical repository is at `https://git.kyanitelabs.tech/simon/handoff-cms`;
+        the GitHub repository at `https://github.com/simongonzalezdc/handoff-cms`
+        is a read-only mirror. Pull requests open on the canonical instance.
+
+        > **Security.** A documentation-only issue that exposes a real secret
+        > or a vulnerability is a security incident. Stop the public issue and
+        > follow [`SECURITY.md`](https://git.kyanitelabs.tech/simon/handoff-cms/blob/main/SECURITY.md)
+        > on the canonical repository. The docs-QA gate `DR6` forbids real
+        > secrets in prose.
+
+  - type: input
+    id: page
+    attributes:
+      label: Affected page(s)
+      description: The EN `*.md` page and the ES `*.es.md` peer together. The docs-QA same-PR EN/ES zero-lag rule forbids touching only one sibling.
+      placeholder: |
+        EN: docs/<area>/<page>.md
+        ES: docs/<area>/<page>.es.md
+    validations:
+      required: true
+
+  - type: dropdown
+    id: gate
+    attributes:
+      label: Docs-QA gate
+      description: "The docs-QA page lists seven gates (`DR1`–`DR7`) plus the discovery-sweep companion gate (`SRC1`). Pick the gate that the issue concerns. If none apply, choose `prose`."
+      options:
+        - DR1 — Link integrity
+        - DR2 — EN/ES parity
+        - DR3 — Link parity
+        - DR4 — Forbidden phrases
+        - DR5 — Claim / source citation
+        - DR6 — Secret-safe source
+        - DR7 — OpenAPI discovery
+        - SRC1 — Discovery-sweep parity
+        - prose (no gate; substantive prose change)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: lane
+    attributes:
+      label: Docs-QA lane owner
+      description: "The docs-QA page names eight lane owners by role. Pick the lane that owns the affected page; the reviewer who approves the change signs off as the role."
+      options:
+        - docs:parity
+        - docs:glossary
+        - docs:contributing
+        - docs:security
+        - docs:api
+        - docs:architecture
+        - docs:howto
+        - docs:overview
+    validations:
+      required: true
+
+  - type: textarea
+    id: drift
+    attributes:
+      label: Drift description
+      description: |
+        The exact mismatch between the current page and the source. The docs-QA page records the
+        discovery-sweep contract:
+        every documented closed union at `docs/reference/error-codes.md` deep-equals the source
+        array in `packages/**/src/**/*.ts`. A non-deep-equal mismatch is a `SRC1` failure.
+      placeholder: |
+        Documented: <union name>, <count>
+        Source:      <union name>, <count>
+        Δ:           <diff>
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: |
+        The minimum verifiable trace. A command line, a `node --check` line, a `pnpm docs:check`
+        output, or a link to the affected source file with line numbers. The docs-QA gate `DR5`
+        requires that any claim beginning with `verified`, `passing`, `tested`, or `supported`
+        cites `artifacts/g008/workspace-test-report.json` or the documentation page that records it.
+      placeholder: |
+        ```sh
+        $ pnpm docs:check
+        # gate DR<N>: <message>
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: locale-impact
+    attributes:
+      label: Locale impact
+      description: |
+        The change ships in the same pull request across both peers. State the EN and ES peer,
+        the heading changes that must match, and the citation additions or removals. The docs-QA
+        gate `DR2` enforces that the headed structure of the two siblings matches.
+      placeholder: |
+        EN: docs/<area>/<page>.md
+          - heading: <## …>
+          - heading: <## …>
+        ES: docs/<area>/<page>.es.md
+          - heading: <## …>
+          - heading: <## …>
+    validations:
+      required: true
+
+  - type: textarea
+    id: citation
+    attributes:
+      label: Primary citations
+      description: |
+        The docs-QA page lists the primary citations at the bottom (retrieved 2026-07-28). If this
+        change re-cites a primary source, name the source and the URL. If the change introduces a
+        new primary citation, add it to the page in the same pull request.
+      placeholder: |
+        Source: <name>
+        URL: <https://…>
+        Retrieved: 2026-07-28
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: author-confirmation
+    attributes:
+      label: Author confirmation
+      description: The documentation-issue author confirms these checks.
+      options:
+        - label: I have named the EN `*.md` page and the ES `*.es.md` peer that change together.
+          required: true
+        - label: I have named the docs-QA gate (`DR1`–`DR7`, `SRC1`, or `prose`) the issue concerns.
+          required: true
+        - label: I have read the docs-QA gates at `docs/project/docs-qa.md` and confirm none of them forbids the proposed change.
+          required: true
+        - label: I am not attaching a real secret, identifier, or copied request/log value.
+          required: true

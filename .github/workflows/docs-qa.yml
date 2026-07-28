@@ -1,0 +1,69 @@
+name: docs-qa
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+# Mirror CI. The canonical contract lives at
+# `.forgejo/workflows/docs-qa.yml` on the Forgejo repository
+# (`https://git.kyanitelabs.tech/simon/handoff-cms`). This workflow runs
+# the same Node 22 / pnpm toolchain against the mirror
+# (`https://github.com/simongonzalezdc/handoff-cms`) for discoverability;
+# it does not replace the gate on the canonical repository. The mirror
+# workflow reads no secrets, writes no artifact, and has no permission to
+# merge.
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs-qa:
+    name: docs:check / test:docs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build source-derived OpenAPI
+        run: pnpm --filter @cms/api... build
+
+      - name: Run docs:check with same-PR locale gate
+        if: github.event_name == 'pull_request'
+        env:
+          CI: 'true'
+        run: pnpm docs:check --base-ref "${{ github.event.pull_request.base.sha }}"
+
+      - name: Run docs:check on merged main
+        if: github.event_name != 'pull_request'
+        env:
+          CI: 'true'
+        run: pnpm docs:check
+
+      - name: Run test:docs
+        env:
+          CI: 'true'
+        run: pnpm test:docs
