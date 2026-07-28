@@ -1,0 +1,33 @@
+{
+  "name": "@cms/adapter-cerafica",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Adapter for the cerafica host repository. Implements the @cms/adapter-sdk Adapter interface (frozen 1.0.0) plus provisional 1.0.0-rc.1 extensions (field_capabilities, DeployCapability). Authoritative host contract lives in cerafica/website/cms-regions.json (manifestSchema=cms-regions/v1). Products canonical path is inventory/products.json; served alias website/data/products.json is a filesystem symlink. The adapter resolves it via real lstat/readlink/realpath and refuses to write through alias paths.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. --config vitest.config.ts packages/adapter-cerafica/test"
+  },
+  "dependencies": {
+    "@cms/adapter-sdk": "workspace:*",
+    "@cms/core": "workspace:*"
+  },
+  "devDependencies": {}
+}

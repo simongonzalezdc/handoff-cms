@@ -1,0 +1,36 @@
+{
+  "name": "@cms/media",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pluggable media BlobStore and governed pipeline contracts for the handoff CMS. Owns the governed projection of tenant-qualified, namespace-scoped, privacy-sanitized media objects; canonical content/assets remain host-owned. Provides local filesystem and injected S3-compatible BlobStore implementations, image media field contracts (peer en/es alt, decorative handling, focal/crop, responsive variants, ICC-preserved and privacy-EXIF-stripped attestation), and a read-only video model. V1: video reads are supported, writes are forbidden.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./blob-store": {
+      "types": "./dist/blob-store.d.ts",
+      "import": "./dist/blob-store.js"
+    }
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. --config vitest.config.ts packages/media/test"
+  },
+  "dependencies": {
+    "@cms/core": "workspace:*",
+    "@imagemagick/magick-wasm": "^0.0.41"
+  }
+}

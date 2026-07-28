@@ -1,0 +1,36 @@
+{
+  "name": "@cms/adapter-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Frozen invariant-bearing public contract for the handoff CMS adapter surface. Defines canonical_source / derived_artifacts / regeneration_contract (alias_symlink) as the frozen core, capability discovery, activation / reconciliation / apply boundaries, canonical-only write intent, and provisional 1.0-beta/RC host-specific extensions (field_capabilities, DeployCapability). Adapters that touch a host repository implement this contract; the system owns governed projection only.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./conformance": {
+      "types": "./dist/conformance.d.ts",
+      "import": "./dist/conformance.js"
+    }
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. --config vitest.config.ts packages/adapter-sdk/test"
+  },
+  "dependencies": {
+    "@cms/core": "workspace:*"
+  },
+  "devDependencies": {}
+}
