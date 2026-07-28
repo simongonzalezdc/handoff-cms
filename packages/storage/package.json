@@ -1,0 +1,41 @@
+{
+  "name": "@cms/storage",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Governance-data persistence contract and Drizzle/Postgres implementation for the handoff CMS. Stores tenants, actors, region bindings, proposals, approvals, revisions, publications, deploy receipts, audit events, and idempotency records. Content/assets remain host-owned; this package only persists governed deltas, references, and diffs. Consumers must import the built `dist/` artifact.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./schema": {
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js"
+    }
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "files": [
+    "dist",
+    "src",
+    "migrations"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. --config vitest.config.ts packages/storage/test"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.36.4",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.4.3",
+    "@types/pg": "^8.11.10"
+  }
+}
