@@ -673,7 +673,7 @@ export const idempotencyRecords = storageSchema.table(
     check('idempotency_records_outcome_chk', sql`${table.outcome} IN ('in_progress','succeeded','failed')`),
     check('idempotency_records_status_chk', sql`${table.responseStatus} IS NULL OR (${table.responseStatus} BETWEEN 100 AND 599)`),
     check('idempotency_records_finalized_consistency_chk', sql`(${table.outcome} IN ('succeeded','failed')) = (${table.finalizedAt} IS NOT NULL)`),
-    check('idempotency_records_response_consistency_chk', sql`(${table.outcome} = 'succeeded') = (${table.response} IS NOT NULL)`),
+    check('idempotency_records_response_consistency_chk', sql`(${table.outcome} IN ('succeeded','failed')) = (${table.response} IS NOT NULL)`),
     check('idempotency_records_in_progress_lock_chk', sql`(${table.outcome} = 'in_progress') = (${table.lockExpiresAt} IS NOT NULL)`),
     check('idempotency_records_response_object_or_null_chk', sql`${table.response} IS NULL OR jsonb_typeof(${table.response}) = 'object'`),
   ],

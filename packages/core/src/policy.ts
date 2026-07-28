@@ -134,7 +134,17 @@ export function evaluatePolicy(
     );
   }
 
-  const live = grants.filter((g) => g.notBefore <= nowIso && nowIso < g.notAfter);
+  const nowMs = Date.parse(nowIso);
+  const live = Number.isFinite(nowMs)
+    ? grants.filter((grant) => {
+        const notBeforeMs = Date.parse(grant.notBefore);
+        const notAfterMs = Date.parse(grant.notAfter);
+        return Number.isFinite(notBeforeMs)
+          && Number.isFinite(notAfterMs)
+          && notBeforeMs <= nowMs
+          && nowMs < notAfterMs;
+      })
+    : [];
   if (live.length === 0) {
     return denial(
       'E_INSUFFICIENT_AUTHORITY',

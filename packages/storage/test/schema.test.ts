@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getTableConfig, type AnyPgTable } from 'drizzle-orm/pg-core';
+import { getTableConfig, PgDialect, type AnyPgTable } from 'drizzle-orm/pg-core';
 import {
   actors,
   approvals,
@@ -47,6 +47,13 @@ function foreignKey(table: AnyPgTable, name: string) {
   const found = tableConfig.foreignKeys.find((candidate) => candidate.getName() === name);
   expect(found, `${tableConfig.name} must declare foreign key ${name}`).toBeDefined();
   return found!;
+}
+
+function checkSql(table: AnyPgTable, name: string): string {
+  const tableConfig = config(table);
+  const found = tableConfig.checks.find((candidate) => candidate.name === name);
+  expect(found, `${tableConfig.name} must declare check ${name}`).toBeDefined();
+  return new PgDialect().sqlToQuery(found!.value).sql;
 }
 
 function expectForeignKey(
@@ -123,6 +130,12 @@ describe('exported Drizzle governance schema', () => {
       'idempotency_records_response_consistency_chk',
       'idempotency_records_in_progress_lock_chk',
     ]));
+  });
+
+  it('keeps failed idempotency responses aligned with the applied migration', () => {
+    const expression = checkSql(idempotencyRecords, 'idempotency_records_response_consistency_chk');
+    expect(expression).toContain(`IN ('succeeded','failed')`);
+    expect(expression).toContain('IS NOT NULL');
   });
 
   it('uses constrained optimistic versions on every mutable versioned table', () => {

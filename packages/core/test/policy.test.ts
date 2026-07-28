@@ -430,6 +430,50 @@ describe('policy: stale and in-flight grants', () => {
     expect(r.allowed).toBe(true);
   });
 
+  it('compares equivalent explicit-offset grant bounds by instant', () => {
+    const grants = new Map<string, readonly AuthorityGrant[]>([
+      [
+        'user-2',
+        [
+          grant({
+            identityId: 'user-2',
+            notBefore: '2026-07-27T05:00:00-07:00',
+            notAfter: '2026-07-27T06:00:00-07:00',
+          }),
+        ],
+      ],
+    ]);
+    const r = evaluatePolicy(
+      policyInput('approve', { actor: otherActor }),
+      resolver(grants),
+      proposer(new Map([['prop-1', 'user-1']])),
+    );
+    expect(r.allowed).toBe(true);
+  });
+
+  it('fails closed when a grant bound is not a parseable timestamp', () => {
+    const grants = new Map<string, readonly AuthorityGrant[]>([
+      [
+        'user-2',
+        [
+          grant({
+            identityId: 'user-2',
+            notAfter: 'not-a-timestamp',
+          }),
+        ],
+      ],
+    ]);
+    const r = evaluatePolicy(
+      policyInput('approve', { actor: otherActor }),
+      resolver(grants),
+      proposer(new Map([['prop-1', 'user-1']])),
+    );
+    expect(r.allowed).toBe(false);
+    if (!r.allowed) {
+      expect(r.code).toBe('E_INSUFFICIENT_AUTHORITY');
+    }
+  });
+
   it('a mixed batch (one stale, one live) resolves to allowed', () => {
     const grants = new Map<string, readonly AuthorityGrant[]>([
       [
