@@ -31,6 +31,7 @@ for (const locale of ['en', 'es'] as const) {
 
     await page.locator('[data-cms-control="locale"]').selectOption(locale);
     await expect(page.locator('html')).toHaveAttribute('lang', locale);
+    await expect(page.locator('[data-cms-control="locale"]')).toBeFocused();
     await expect(page.locator('h1')).toHaveText(locale === 'en' ? 'Handoff CMS authoring' : 'Creación de contenido en Handoff CMS');
 
     // 1. Peer-locale text edit.
@@ -174,6 +175,7 @@ for (const locale of ['en', 'es'] as const) {
     await page.goto('/packages/web/e2e/handoff-beat.html');
     await page.locator('[data-cms-control="locale"]').selectOption(locale);
     await expect(page.locator('html')).toHaveAttribute('lang', locale);
+    await expect(page.locator('[data-cms-control="locale"]')).toBeFocused();
 
     // Forbidden initial transitions and commerce controls stay unavailable.
     await expect(page.locator('[data-cms-action="reconcile"]')).toBeDisabled();

@@ -366,7 +366,10 @@ function wireBindings(
         if (value !== 'en' && value !== 'es') return;
         const command: Command = { type: 'set_preference', preference: { locale: value as Locale } };
         emitCommand(handlers, command);
-        store.dispatch(command).catch((err: unknown) => {
+        store.dispatch(command).then(() => {
+          const renderedLocaleSelect = dom.query(root, '[data-cms-control="locale"]');
+          if (renderedLocaleSelect !== null) dom.focus(renderedLocaleSelect);
+        }).catch((err: unknown) => {
           announceError(liveLog, errorSummary, err, translator(), dom);
         });
       }),
