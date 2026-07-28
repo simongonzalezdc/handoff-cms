@@ -1,0 +1,35 @@
+{
+  "name": "@cms/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Thin MCP projection over the @cms/api authority surface. Exposes read-only resources backed by /v1 reads and propose/suggest/preview/approval-opportunity tools. No state-transition, approve, publish, apply, rollback, or arbitrary-request capability is exposed; service and MCP identities never approve, publish, or rollback.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    }
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. --config vitest.config.ts packages/mcp/test"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "dependencies": {
+    "@cms/api": "workspace:*"
+  }
+}

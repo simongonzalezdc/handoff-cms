@@ -1,0 +1,38 @@
+{
+  "name": "@cms/server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Apache-2.0 self-hosted Handoff CMS server. Node 22 ESM executable that wires @cms/api over a real @cms/storage Postgres instance, validates OIDC bearer tokens against a JWKS, enforces tenant/request/upload quotas, and emits PII-free structured JSON logs, /health/live, /health/ready, and Prometheus-format /metrics. No proprietary control-plane dependency in production.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "@cms/server": "./dist/index.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node ./dist/index.js"
+  },
+  "dependencies": {
+    "@cms/api": "workspace:*",
+    "@cms/core": "workspace:*",
+    "@cms/storage": "workspace:*",
+    "hono": "^4.6.14",
+    "jose": "^5.9.6"
+  }
+}
