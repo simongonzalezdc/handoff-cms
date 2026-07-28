@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "api-package-test-report",
+  "verifiedAt": "2026-07-27T21:18:49.543Z",
+  "workspace": "/Users/simongonzalezdecruz/workspaces/handoff-cms",
+  "results": [
+    {
+      "command": "pnpm typecheck",
+      "status": "passed",
+      "scope": "13 package projects"
+    },
+    {
+      "command": "pnpm test",
+      "status": "passed",
+      "testFiles": 27,
+      "tests": 899
+    },
+    {
+      "command": "pnpm build",
+      "status": "passed",
+      "scope": "13 package projects"
+    },
+    {
+      "command": "node packages/licensing-guard/dist/index.js --root . --json",
+      "status": "passed",
+      "workspacePackages": 14,
+      "findings": 0
+    },
+    {
+      "command": "pnpm test:e2e",
+      "status": "passed",
+      "projects": ["desktop-chromium", "tablet-chromium", "mobile-chromium"],
+      "locales": ["en", "es"],
+      "tests": 6,
+      "axeViolations": 0,
+      "tastecheckVerdicts": ["CLEAN"],
+      "artifacts": "artifacts/g008/{desktop,tablet,mobile}/handoff-beat-{en,es}.{json,png}"
+    },
+    {
+      "command": "docker compose -f compose.yaml config --quiet",
+      "status": "passed",
+      "environment": "non-secret validation-only substitutions"
+    },
+    {
+      "command": "node --check scripts/self-host-healthcheck.mjs",
+      "status": "passed"
+    }
+  ],
+  "limitations": [
+    "Docker daemon execution was unavailable; Compose interpolation/config validation, runtime package tests, and healthcheck syntax passed.",
+    "Neurodivergent-accessible by design; external participant validation is a v1.1 goal.",
+    "The second independent adapter remains the v1.1 contract-validation gate."
+  ]
+}
