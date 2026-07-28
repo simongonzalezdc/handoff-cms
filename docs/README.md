@@ -80,4 +80,4 @@ A claim that depends on a primary source but does not cite it is a docs-QA failu
 - New to the project: [`overview.md`](overview.md) · [`.es`](overview.es.md), then the README front door.
 - Picking an audience path: see the [README audience matrix](../README.md#who-this-is-for--pick-one-path).
 - Editing documentation: [`project/contributing.md`](project/contributing.md) · [`.es`](project/contributing.es.md) and [`project/docs-qa.md`](project/docs-qa.md) · [`.es`](project/docs-qa.es.md).
-- Auditing the documentation system: [`evidence/verification.md`](evidence/verification.md) and [`evidence/limitations.md`](evidence/limitations.md) distinguish executed evidence from explicit limitations.
+- Auditing the documentation system: [`evidence/verification.md`](evidence/verification.md), [`evidence/limitations.md`](evidence/limitations.md), and the [`evidence/documentation-campaign.md`](evidence/documentation-campaign.md) final campaign record distinguish executed evidence, campaign learnings, and explicit limitations.

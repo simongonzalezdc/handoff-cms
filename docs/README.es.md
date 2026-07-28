@@ -80,4 +80,4 @@ Una afirmación que depende de una fuente primaria pero no la cita es una falla 
 - Nuevo en el proyecto: [`overview.md`](overview.md) (EN) · [`overview.es.md`](overview.es.md), y luego la puerta de entrada del README.
 - Eligiendo una ruta de audiencia: ver la [matriz de audiencias del README](../README.md#para-quién-es--elige-una-ruta).
 - Editando la documentación: [`project/contributing.es.md`](project/contributing.es.md) · [EN](project/contributing.md) y [`project/docs-qa.es.md`](project/docs-qa.es.md) · [EN](project/docs-qa.md).
-- Auditando el sistema documental: [`evidence/verification.md`](evidence/verification.md) y [`evidence/limitations.md`](evidence/limitations.md) distinguen la evidencia ejecutada de las limitaciones explícitas.
+- Auditando el sistema documental: [`evidence/verification.md`](evidence/verification.md), [`evidence/limitations.md`](evidence/limitations.md) y el registro final de campaña [`evidence/documentation-campaign.md`](evidence/documentation-campaign.md) distinguen la evidencia ejecutada, los aprendizajes de campaña y las limitaciones explícitas.
