@@ -1,0 +1,44 @@
+{
+  "name": "@cms/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Framework-free TypeScript/DOM authoring application for the Handoff CMS. Bilingual (en/es), accessible (WCAG 2.2 AA + ATAG/COGA patterns), low-distraction authoring model that is a thin client over an injected AuthoringApi. Exposes immutable snapshots, typed commands, deterministic state, and one-action rollback. Never re-implements authorization; approve/publish/rollback always call the API.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./model": {
+      "types": "./dist/model.d.ts",
+      "import": "./dist/model.js"
+    },
+    "./app": {
+      "types": "./dist/app.d.ts",
+      "import": "./dist/app.js"
+    },
+    "./tastecheck": {
+      "types": "./dist/tastecheck.d.ts",
+      "import": "./dist/tastecheck.js"
+    }
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. --config vitest.config.ts packages/web/test"
+  },
+  "dependencies": {
+    "@cms/core": "workspace:*",
+    "@cms/i18n": "workspace:*"
+  }
+}
