@@ -53,14 +53,14 @@ El despliegue de referencia de Cerafica expone tres superficies editables — p�
 
 ## El comercio es *coordinator-gated*
 
-Los campos vinculados al comercio **no** forman parte de la superficie de autoría. Los campos de Cerafica vinculados a Stripe (`price`, `stripe_payment_link`, `available`, `one_of_one`) son por defecto de solo lectura / *coordinator-gated*, y `capabilities.coordinator` es el literal congelado `readonly` con `failClosed: true` ([`packages/adapter-cerafica/src/index.ts`](../../packages/adapter-cerafica/src/index.ts#L152-L160), [`docs/overview.es.md`](../overview.es.md)).
+Los campos vinculados al comercio **no** forman parte de la superficie de autoría. Los campos de Cerafica vinculados a Stripe (`price`, `stripe_payment_link`, `available`, `coming_soon`, `one_of_one`) son por defecto de solo lectura / *coordinator-gated*, y `capabilities.coordinator` es el literal congelado `readonly` con `failClosed: true` ([`packages/adapter-cerafica/src/index.ts`](../../packages/adapter-cerafica/src/index.ts#L152-L160), [`docs/overview.es.md`](../overview.es.md)).
 
 La aplicación es **id-matched** en el límite de escritura canónica: cada producto en los bytes propuestos se empareja por id con un producto en los bytes canónicos existentes; los desajustes (ids añadidos o quitados) se rechazan, y las mutaciones del conjunto cerrado de campos de comercio en ids emparejados se rechazan. Cuando el archivo canónico aún no existe, se rechaza introducir productos; una entrada malformada o que no sea un *array* falla de forma cerrada ([`packages/adapter-cerafica/src/index.ts`](../../packages/adapter-cerafica/src/index.ts#L1478-L1582)).
 
 Esto significa:
 
 - El CMS escribe el archivo canónico. No codifica un cambio de comercio.
-- Editar libremente `price` sin regenerar el *Payment Link* crearía un desajuste entre el *checkout* y lo mostrado; alternar `available` / `one_of_one` sin coordinación de inventario crearía un riesgo de sobreventa. El límite impide ese camino por construcción.
+- Editar libremente `price` sin regenerar el *Payment Link* crearía un desajuste entre el *checkout* y lo mostrado; alternar `available`, `coming_soon` o `one_of_one` sin coordinación de inventario crearía un riesgo de disponibilidad o sobreventa. El límite impide ese camino por construcción.
 - La persona coordinadora de comercio sigue siendo la autoridad para las mutaciones de comercio. El CMS muestra el modo de fallo, pero no se convierte en coordinadora.
 
 El mismo control se ejecuta antes de que el escritor de reversión confirme bytes, de modo que la reversión no pueda convertirse en una puerta de elusión contra la autoridad *coordinator-gated* ([`packages/adapter-cerafica/src/index.ts`](../../packages/adapter-cerafica/src/index.ts#L683-L710), [`packages/adapter-cerafica/src/index.ts`](../../packages/adapter-cerafica/src/index.ts#L1024-L1050)).

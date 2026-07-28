@@ -83,4 +83,3 @@ For neutral-Spanish guidance, this glossary follows the same conventions as the 
 - `packages/adapter-sdk/src/index.ts`, `packages/adapter-sdk/src/conformance.ts` — discovery sweep, frozen and provisional capabilities.
 - `packages/cli/src/index.ts` — privileged commands, delegated-human session.
 - `docs/concepts/architecture.md`, `docs/concepts/governance-and-human-authority.md`, `docs/concepts/handoff-beat.md` — concept pages.
-- `handoff.md` — historical product invariants (legacy brief; not the current authority).

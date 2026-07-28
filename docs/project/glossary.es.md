@@ -83,4 +83,3 @@ Para la pauta de español neutro, este glosario sigue las mismas convenciones de
 - `packages/adapter-sdk/src/index.ts`, `packages/adapter-sdk/src/conformance.ts` — barrido de descubrimiento, capacidades congeladas y provisionales.
 - `packages/cli/src/index.ts` — comandos privilegiados, sesión humanodelegada.
 - `docs/concepts/architecture.md`, `docs/concepts/governance-and-human-authority.md`, `docs/concepts/handoff-beat.md` — páginas de conceptos.
-- `handoff.md` — invariantes históricos del producto (brief heredado; no es la fuente de autoridad actual).

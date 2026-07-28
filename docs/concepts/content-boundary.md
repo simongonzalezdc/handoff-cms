@@ -53,14 +53,14 @@ The Cerafica reference deployment exposes three editable surfaces — hardcoded 
 
 ## Commerce is coordinator-gated
 
-Commerce-coupled fields are **not** part of the author surface. Cerafica's Stripe-coupled fields (`price`, `stripe_payment_link`, `available`, `one_of_one`) default to read-only / coordinator-gated, and `capabilities.coordinator` is the frozen literal `readonly` with `failClosed: true` ([`packages/adapter-cerafica/src/index.ts`](../../packages/adapter-cerafica/src/index.ts#L152-L160), [`docs/overview.md`](../overview.md)).
+Commerce-coupled fields are **not** part of the author surface. Cerafica's Stripe-coupled fields (`price`, `stripe_payment_link`, `available`, `coming_soon`, `one_of_one`) default to read-only / coordinator-gated, and `capabilities.coordinator` is the frozen literal `readonly` with `failClosed: true` ([`packages/adapter-cerafica/src/index.ts`](../../packages/adapter-cerafica/src/index.ts#L152-L160), [`docs/overview.md`](../overview.md)).
 
 The enforcement is **id-matched** at the canonical write boundary: each product in the proposed bytes is matched by id to a product in the existing canonical bytes; mismatches (added/removed ids) are refused, and mutations to the closed commerce field set on matched ids are refused. When the canonical file does not yet exist, introducing products is refused; malformed or non-array input fails closed ([`packages/adapter-cerafica/src/index.ts`](../../packages/adapter-cerafica/src/index.ts#L1478-L1582)).
 
 This means:
 
 - The CMS writes the canonical file. It does not encode a commerce change.
-- Free-editing `price` without regenerating the Payment Link would create a checkout / display mismatch; flipping `available` / `one_of_one` without inventory coordination would create an oversell risk. The boundary prevents that path by construction.
+- Free-editing `price` without regenerating the Payment Link would create a checkout / display mismatch; flipping `available`, `coming_soon`, or `one_of_one` without inventory coordination would create an availability or oversell risk. The boundary prevents that path by construction.
 - The commerce coordinator remains the authority for commerce mutations. The CMS surfaces the failure mode but does not become a coordinator itself.
 
 The same gating runs before the rollback writer commits any bytes, so rollback cannot become a bypass hatch against coordinator-gated authority ([`packages/adapter-cerafica/src/index.ts`](../../packages/adapter-cerafica/src/index.ts#L683-L710), [`packages/adapter-cerafica/src/index.ts`](../../packages/adapter-cerafica/src/index.ts#L1024-L1050)).

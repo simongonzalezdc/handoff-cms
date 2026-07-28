@@ -24,7 +24,7 @@ The project status is captured in the i18n catalog. The exact wording used throu
 
 > **“neurodivergent-accessible by design”**
 
-This is a design stance, not a claim of external participant validation. The exact V1 limitation wording is:
+This is a design stance, not a claim of external participant validation. The limiting tail of the full catalog message is:
 
 > **“External validation is planned for v1.1.”**
 
