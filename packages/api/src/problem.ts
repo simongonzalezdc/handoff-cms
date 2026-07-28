@@ -224,13 +224,29 @@ export function isSupportedLocale(value: string): value is Locale {
   return value === 'en' || value === 'es';
 }
 
-export function negotiateLocale(acceptLanguage: string | null | undefined): Locale {
-  if (typeof acceptLanguage !== 'string' || acceptLanguage.length === 0) return 'en';
-  for (const entry$ of acceptLanguage.split(',')) {
-    const primary = entry$.split(';')[0]?.trim().split('-')[0]?.toLowerCase() ?? '';
-    if (isSupportedLocale(primary)) return primary;
+export function negotiateLocale(acceptLanguage: string | null | undefined): Locale | undefined {
+  if (typeof acceptLanguage !== 'string' || acceptLanguage.trim().length === 0) return 'en';
+
+  const candidates = acceptLanguage
+    .split(',')
+    .map((entry, index) => {
+      const [language = '', ...parameters] = entry.trim().split(';');
+      const primary = language.trim().split('-')[0]?.toLowerCase() ?? '';
+      const qualityParameter = parameters.find((parameter) => parameter.trim().startsWith('q='));
+      const parsedQuality = qualityParameter === undefined
+        ? 1
+        : Number.parseFloat(qualityParameter.trim().slice(2));
+      const quality = Number.isFinite(parsedQuality) ? parsedQuality : 0;
+      return { primary, quality, index };
+    })
+    .filter((candidate) => candidate.quality > 0)
+    .sort((left, right) => right.quality - left.quality || left.index - right.index);
+
+  for (const candidate of candidates) {
+    if (isSupportedLocale(candidate.primary)) return candidate.primary;
+    if (candidate.primary === '*') return 'en';
   }
-  return 'en';
+  return undefined;
 }
 
 // ---------------------------------------------------------------------------

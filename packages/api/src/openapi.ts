@@ -20,7 +20,11 @@
  * claim.
  */
 
+import { PROPOSAL_STATE_TO_CONTENT_STATE } from '@cms/core';
+
 import { PROBLEM_LOCALES, problemTypeUrn } from './problem.js';
+
+const PROPOSAL_STATES = Object.freeze(Object.keys(PROPOSAL_STATE_TO_CONTENT_STATE));
 
 // ---------------------------------------------------------------------------
 // Document and primitive shapes
@@ -269,26 +273,7 @@ const Proposal: OpenApiObject = {
     title: { type: 'string' },
     state: {
       type: 'string',
-      enum: [
-        'draft',
-        'proposed',
-        'validated',
-        'validation_failed',
-        'previewing',
-        'preview_failed',
-        'approved',
-        'approval_revoked',
-        'applying',
-        'apply_failed',
-        'canonical_written',
-        'write_failed',
-        'propagating',
-        'propagate_failed',
-        'live',
-        'reconcile_failed',
-        'reconciled',
-        'rolled_back',
-      ],
+      enum: PROPOSAL_STATES,
     },
     version: { type: 'integer', minimum: 1 },
     createdAt: { type: 'string', format: 'date-time' },
@@ -372,6 +357,15 @@ const IfMatchHeader: OpenApiParameter = {
   description: 'Expected version for optimistic concurrency.',
   schema: { type: 'string' },
 };
+const AcceptLanguageHeader: OpenApiParameter = {
+  name: 'Accept-Language',
+  in: 'header',
+  required: false,
+  description:
+    "Preferred peer locale. Omitted defaults to 'en'; a non-empty value without supported 'en' or 'es' language ranges returns E_BAD_LOCALE.",
+  schema: { type: 'string' },
+};
+
 
 const ProposalIdParam: OpenApiParameter = {
   name: 'id',
@@ -393,6 +387,15 @@ const ProblemResponse: OpenApiResponse = {
   description: 'RFC 9457 Problem Details response.',
   content: { 'application/problem+json': { schema: ProblemSchema } },
 };
+const DeployReceiptResult: OpenApiSchema = {
+  type: 'object',
+  required: ['deploy_receipt', 'proposal'],
+  properties: {
+    deploy_receipt: { type: 'object', additionalProperties: true },
+    proposal: Proposal,
+  },
+};
+
 
 function jsonResponse(description: string, schema: OpenApiSchema): OpenApiResponse {
   return { description, content: { 'application/json': { schema } } };
@@ -435,6 +438,7 @@ export const openApiDocument: OpenApiDocument = {
   ],
   paths: {
     '/v1/health': {
+      parameters: [AcceptLanguageHeader],
       get: {
         summary: 'Liveness probe (unauthenticated)',
         description:
@@ -445,18 +449,19 @@ export const openApiDocument: OpenApiDocument = {
         responses: {
           '200': jsonResponse('Service is alive.', {
             type: 'object',
-            required: ['status'],
+            required: ['status', 'service', 'locale'],
             properties: {
               status: { type: 'string', enum: ['ok'] },
               service: { type: 'string' },
               locale: { type: 'string', enum: ['en', 'es'] },
             },
           }),
+          '400': ProblemResponse,
         },
       },
     },
     '/v1/proposals': {
-      parameters: [TenantIdHeader, AuthorizationHeader, IdempotencyKeyHeader],
+      parameters: [TenantIdHeader, AuthorizationHeader, IdempotencyKeyHeader, AcceptLanguageHeader],
       post: {
         summary: 'Create a proposal',
         description:
@@ -473,7 +478,7 @@ export const openApiDocument: OpenApiDocument = {
       },
     },
     '/v1/proposals/{id}': {
-      parameters: [TenantIdHeader, AuthorizationHeader, ProposalIdParam],
+      parameters: [TenantIdHeader, AuthorizationHeader, ProposalIdParam, AcceptLanguageHeader],
       get: {
         summary: 'Fetch a proposal',
         description: 'Returns the proposal row. Tenants are isolated; cross-tenant reads 404.',
@@ -483,7 +488,7 @@ export const openApiDocument: OpenApiDocument = {
       },
     },
     '/v1/proposals/{id}/approve': {
-      parameters: [TenantIdHeader, AuthorizationHeader, IdempotencyKeyHeader, IfMatchHeader, ProposalIdParam],
+      parameters: [TenantIdHeader, AuthorizationHeader, IdempotencyKeyHeader, IfMatchHeader, ProposalIdParam, AcceptLanguageHeader],
       post: {
         summary: 'Approve a proposal (human only)',
         description:
@@ -501,7 +506,7 @@ export const openApiDocument: OpenApiDocument = {
       },
     },
     '/v1/proposals/{id}/publish': {
-      parameters: [TenantIdHeader, AuthorizationHeader, IdempotencyKeyHeader, IfMatchHeader, ProposalIdParam],
+      parameters: [TenantIdHeader, AuthorizationHeader, IdempotencyKeyHeader, IfMatchHeader, ProposalIdParam, AcceptLanguageHeader],
       post: {
         summary: 'Publish a proposal (human only)',
         description:
@@ -518,7 +523,7 @@ export const openApiDocument: OpenApiDocument = {
       },
     },
     '/v1/proposals/{id}/rollback': {
-      parameters: [TenantIdHeader, AuthorizationHeader, IdempotencyKeyHeader, IfMatchHeader, ProposalIdParam],
+      parameters: [TenantIdHeader, AuthorizationHeader, IdempotencyKeyHeader, IfMatchHeader, ProposalIdParam, AcceptLanguageHeader],
       post: {
         summary: 'Rollback a proposal (human only, single action)',
         description:
@@ -535,15 +540,14 @@ export const openApiDocument: OpenApiDocument = {
       },
     },
     '/v1/publications/{id}/deploy-receipts': {
-      parameters: [TenantIdHeader, AuthorizationHeader, IdempotencyKeyHeader, PublicationIdParam],
+      parameters: [TenantIdHeader, AuthorizationHeader, IdempotencyKeyHeader, PublicationIdParam, AcceptLanguageHeader],
       post: {
         summary: 'Record a host deployment receipt (coordinator-gated, adapter-owned)',
         description:
           'Records pending, succeeded, or failed host propagation separately from the canonical write and advances the proposal deployment state. ' +
           'Authority: the authenticated caller must have `identity.id === adapterId` and carry the narrowly scoped provisional `deploy.receipt` capability. ' +
           'A dedicated adapter service may report deployment state; this is not an approve, publish, apply, or rollback authority. ' +
-          'On `status="failed"` the publication transitions to `failed`; the proposal is left in `canonical_written` ' +
-          'because @cms/core has no direct `canonical_written + propagate -> propagate_failed` edge (integration blocker).',
+          'On `status="failed"` the publication transitions to `failed`. A proposal still at `canonical_written` remains there because @cms/core has no direct `canonical_written + propagate -> propagate_failed` edge; a proposal already at `propagating` transitions to `deploy_failed`.',
         tags: ['deploys'],
         operationId: 'recordDeployReceipt',
         requestBody: {
@@ -573,18 +577,14 @@ export const openApiDocument: OpenApiDocument = {
             },
           },
         },
-        responses: problemResponses(200, {
-          type: 'object',
-          required: ['deploy_receipt', 'proposal'],
-          properties: {
-            deploy_receipt: { type: 'object', additionalProperties: true },
-            proposal: Proposal,
-          },
-        }),
+        responses: {
+          ...problemResponses(200, DeployReceiptResult),
+          '202': jsonResponse('Pending deployment receipt accepted.', DeployReceiptResult),
+        },
       },
     },
     '/v1/proposals/{id}/reconcile': {
-      parameters: [TenantIdHeader, AuthorizationHeader, IdempotencyKeyHeader, IfMatchHeader, ProposalIdParam],
+      parameters: [TenantIdHeader, AuthorizationHeader, IdempotencyKeyHeader, IfMatchHeader, ProposalIdParam, AcceptLanguageHeader],
       post: {
         summary: 'Reconcile live host state (human only)',
         description:

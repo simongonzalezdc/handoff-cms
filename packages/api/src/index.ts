@@ -143,12 +143,12 @@ export function createApi(options: CreateApiOptions): Hono<ApiEnv> {
   const { services } = options;
   const app = new Hono<ApiEnv>();
   app.get('/v1/health', (c) => {
-    const locale = c.req.header('accept-language') ?? '';
+    const locale = requireNegotiatedLocale(c.req.header('accept-language'));
     return c.json(
       Object.freeze({
         status: 'ok',
         service: '@cms/api',
-        locale: negotiateLocale(locale),
+        locale,
       }),
       200,
     );
@@ -182,7 +182,7 @@ function requestContextMiddleware(services: ApiServices): MiddlewareHandler<ApiE
           counter += 1;
           return sha256Hex(`${services.now().toISOString()}:${counter}`);
         })();
-    const locale = negotiateLocale(c.req.header('accept-language'));
+    const locale = requireNegotiatedLocale(c.req.header('accept-language'));
     c.set('traceId', traceId);
     c.set('locale', locale);
     c.set('requestFingerprint', await fingerprintFor(c.req.raw));
@@ -803,6 +803,12 @@ class ProblemError extends Error {
     this.code = code;
     this.extensions = extensions;
   }
+}
+
+function requireNegotiatedLocale(acceptLanguage: string | undefined): 'en' | 'es' {
+  const locale = negotiateLocale(acceptLanguage);
+  if (locale === undefined) throw new ProblemError('E_BAD_LOCALE');
+  return locale;
 }
 
 // ---------------------------------------------------------------------------
