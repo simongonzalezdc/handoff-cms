@@ -25,15 +25,18 @@ x-logging-default: &logging_default
     labels: "service,role"
 
 # -----------------------------------------------------------------------------
-# Shared networks. Default-only is implicit; the explicit "cms_internal"
-# network lets the operator attach future sidecars (TLS terminator, reverse
-# proxy, observability scraper) without entangling the public network.
-# -----------------------------------------------------------------------------
+# Data services and one-shot initializers live on an internal-only network.
+# The server joins both that network and a separate egress network for OIDC/JWKS.
 networks:
-  cms_internal:
-    name: cms_internal
+  cms_data:
+    name: cms_data
     driver: bridge
-    internal: false           # leave gateway reachable for JWKS / OIDC
+    internal: true
+    attachable: true
+  cms_egress:
+    name: cms_egress
+    driver: bridge
+    internal: false
     attachable: true
 
 # -----------------------------------------------------------------------------
@@ -64,7 +67,7 @@ services:
     container_name: cms-postgres
     hostname: postgres
     networks:
-      - cms_internal
+      - cms_data
     ports: []                    # expose only when the operator explicitly wants
     environment:
       POSTGRES_DB:        ${CMS_POSTGRES_DB:-cms}
@@ -104,7 +107,7 @@ services:
     image: postgres:16-alpine
     container_name: cms-migrations
     networks:
-      - cms_internal
+      - cms_data
     depends_on:
       postgres:
         condition: service_healthy
@@ -145,7 +148,7 @@ services:
     container_name: cms-minio
     hostname: minio
     networks:
-      - cms_internal
+      - cms_data
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
       MINIO_ROOT_USER:     ${CMS_MINIO_ROOT_USER:?CMS_MINIO_ROOT_USER must be set in .env}
@@ -174,15 +177,16 @@ services:
 
   # ---------------------------------------------------------------------------
   # Service: minio-init (one-shot)
-  # Creates a private bucket with anonymous access disabled. Re-runs are
-  # safe: `mc mb --ignore-existing` is a no-op on subsequent boots.
+  # Creates a private bucket and converges a bucket-scoped application user.
+  # Re-runs replace only that dedicated user so rotated credentials take effect
+  # before the server starts; MinIO root credentials never reach the app.
   # ---------------------------------------------------------------------------
   minio-init:
     <<: *cms_defaults
     image: minio/mc:RELEASE.2024-11-21T17-21-54Z
     container_name: cms-minio-init
     networks:
-      - cms_internal
+      - cms_data
     depends_on:
       minio:
         condition: service_healthy
@@ -195,12 +199,37 @@ services:
           "$$CMS_MINIO_ROOT_USER" "$$CMS_MINIO_ROOT_PASSWORD"
         mc mb --ignore-existing local/"$$CMS_OBJECT_BUCKET"
         mc anonymous set none local/"$$CMS_OBJECT_BUCKET"
-        # Tight versioning rules can be applied here as policy widens.
-        echo "minio-init: bucket $$CMS_OBJECT_BUCKET is ready."
+        cat > /tmp/cms-app-policy.json <<EOF
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetBucketLocation", "s3:ListBucket", "s3:ListBucketMultipartUploads"],
+              "Resource": ["arn:aws:s3:::$$CMS_OBJECT_BUCKET"]
+            },
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:AbortMultipartUpload", "s3:ListMultipartUploadParts"],
+              "Resource": ["arn:aws:s3:::$$CMS_OBJECT_BUCKET/*"]
+            }
+          ]
+        }
+        EOF
+        mc admin policy create local cms-app /tmp/cms-app-policy.json
+        if mc admin user info local "$$CMS_OBJECT_ACCESS_KEY_ID" >/tmp/cms-user-info 2>/tmp/cms-user-error; then
+          mc admin user remove local "$$CMS_OBJECT_ACCESS_KEY_ID"
+        fi
+        mc admin user add local \
+          "$$CMS_OBJECT_ACCESS_KEY_ID" "$$CMS_OBJECT_SECRET_ACCESS_KEY"
+        mc admin policy attach local cms-app --user "$$CMS_OBJECT_ACCESS_KEY_ID"
+        echo "minio-init: bucket and scoped application user are ready."
     environment:
-      CMS_MINIO_ROOT_USER:     ${CMS_MINIO_ROOT_USER:?CMS_MINIO_ROOT_USER must be set}
-      CMS_MINIO_ROOT_PASSWORD: ${CMS_MINIO_ROOT_PASSWORD:?CMS_MINIO_ROOT_PASSWORD must be set}
-      CMS_OBJECT_BUCKET:       ${CMS_OBJECT_BUCKET:-cms-content}
+      CMS_MINIO_ROOT_USER:          ${CMS_MINIO_ROOT_USER:?CMS_MINIO_ROOT_USER must be set}
+      CMS_MINIO_ROOT_PASSWORD:      ${CMS_MINIO_ROOT_PASSWORD:?CMS_MINIO_ROOT_PASSWORD must be set}
+      CMS_OBJECT_BUCKET:            ${CMS_OBJECT_BUCKET:-cms-content}
+      CMS_OBJECT_ACCESS_KEY_ID:     ${CMS_OBJECT_ACCESS_KEY_ID:?CMS_OBJECT_ACCESS_KEY_ID must be set}
+      CMS_OBJECT_SECRET_ACCESS_KEY: ${CMS_OBJECT_SECRET_ACCESS_KEY:?CMS_OBJECT_SECRET_ACCESS_KEY must be set}
     restart: "no"                 # explicit; do not resurrect
     read_only: true
     security_opt:
@@ -223,7 +252,8 @@ services:
     container_name: cms-server
     hostname: server
     networks:
-      - cms_internal
+      - cms_data
+      - cms_egress
     depends_on:
       postgres:
         condition: service_healthy

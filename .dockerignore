@@ -57,6 +57,10 @@ teach/
 launchpad.log
 *.tsbuildinfo
 tsconfig.tsbuildinfo
+artifacts/
+handoff.md
+playwright-report/
+test-results/
 
 # Compose and infrastructure artefacts are not part of the server image.
 Dockerfile
