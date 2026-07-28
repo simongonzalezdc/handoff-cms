@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "kind": "final-documentation-campaign-report",
+  "campaignStatus": "completed",
+  "repository": {
+    "canonical": {
+      "host": "Forgejo",
+      "url": "https://git.kyanitelabs.tech/simon/handoff-cms"
+    },
+    "mirror": {
+      "host": "GitHub",
+      "url": "https://github.com/simongonzalezdc/handoff-cms"
+    },
+    "mainCommit": "ee10e1de26f73ffcde8f6b88ce171786ff3e6315",
+    "forgejoMainCommit": "ee10e1de26f73ffcde8f6b88ce171786ff3e6315",
+    "githubMainCommit": "ee10e1de26f73ffcde8f6b88ce171786ff3e6315",
+    "mainHashesIdentical": true
+  },
+  "changeControl": {
+    "atomicPullRequests": [6, 7, 8],
+    "independentReviewRefs": [296, 298, 301],
+    "humanApprovalRequired": true
+  },
+  "externalAttestation": {
+    "reviewRefs": "Verified through independent GJC agent receipts during the session.",
+    "productLedger": "/Users/simongonzalezdecruz/workspaces/handoff-cms/.gjc/_session-019fa603-535a-7000-a14d-a2d012f92e38/ultragoal/ledger.jsonl",
+    "launchpadLedger": "/Users/simongonzalezdecruz/launchpad/.gjc/_session-019fa603-535a-7000-a14d-a2d012f92e38/ultragoal/ledger.jsonl"
+  },
+  "receipts": {
+    "finalAggregateProduct": {
+      "receiptId": "bde1f39d-3624-4124-bd30-45316b127932",
+      "eventId": "74f87b4c-ce08-4cc9-a42d-5f0456cf01c8"
+    },
+    "synchronizedLaunchpad": {
+      "receiptId": "3d119922-2a04-4aec-96eb-6587a06e200b",
+      "eventId": "609e9c65-70b2-45b5-86d9-4f84786c0ea5"
+    }
+  },
+  "verification": {
+    "packageProjects": {
+      "typecheck": 13,
+      "build": 13
+    },
+    "unitAndIntegrationTests": {
+      "tests": 1178,
+      "files": 28
+    },
+    "unitAndIntegrationEvidence": {
+      "path": "artifacts/docs/final-vitest-report.json",
+      "numTotalTestSuites": 211,
+      "numPassedTestSuites": 211,
+      "numTotalTests": 1178,
+      "numPassedTests": 1178,
+      "testFiles": 28
+    },
+    "licensing": {
+      "workspacePackages": 14,
+      "findings": 0
+    },
+    "documentationTests": {
+      "passed": 38,
+      "total": 38
+    },
+    "documentationQa": {
+      "passed": 22,
+      "total": 22
+    },
+    "browserE2e": {
+      "passed": 12,
+      "total": 12
+    }
+  },
+  "learnings": [
+    "Preserve each host's canonical truth: Forgejo is authoritative and GitHub is a mirror.",
+    "Human approval remains required; automation and green checks do not authorize merge or release.",
+    "English and Spanish peers ship with zero lag, and runtime locale handling must not silently fall back.",
+    "Documentation and implementation parity must be source-derived and bidirectional.",
+    "Evidence validation must fail closed when required proof is absent or inconsistent.",
+    "Atomic pull requests and independent review references keep change and approval boundaries auditable.",
+    "Audit receipts must hash-commit the actual path sets they attest.",
+    "Worktree alignment can produce an empty diff; pin and record base and head before interpreting the result.",
+    "Executor runner startup failures are infrastructure evidence, never product-test failures."
+  ],
+  "limitations": [
+    {
+      "area": "dockerDaemonRuntime",
+      "status": "unverified-deferred",
+      "claim": "No Docker daemon-backed runtime execution is claimed."
+    },
+    {
+      "area": "externalParticipantTesting",
+      "status": "unverified-deferred",
+      "claim": "No external participant validation is claimed."
+    },
+    {
+      "area": "secondAdapter",
+      "status": "unverified-deferred",
+      "claim": "A second independent adapter remains deferred and unverified."
+    }
+  ],
+  "reproductionCommands": [
+    "pnpm typecheck",
+    "pnpm build",
+    "pnpm test",
+    "node packages/licensing-guard/dist/index.js --root . --json",
+    "pnpm test:docs",
+    "pnpm docs:check",
+    "pnpm test:e2e"
+  ]
+}
