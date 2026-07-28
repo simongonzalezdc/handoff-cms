@@ -4,11 +4,11 @@
 
 ## Verified facts
 
-The completed campaign is recorded at the full `main` commit `ee10e1de26f73ffcde8f6b88ce171786ff3e6315`. The canonical repository is Forgejo at <https://git.kyanitelabs.tech/simon/handoff-cms>; GitHub at <https://github.com/simongonzalezdc/handoff-cms> is the public mirror. Forgejo `main` and GitHub `main` resolved to that identical hash.
+The implementation and enterprise-documentation campaign baseline is commit `ee10e1de26f73ffcde8f6b88ce171786ff3e6315`. At that campaign close, canonical Forgejo and the public GitHub mirror resolved to the same baseline. This evidence page and its later closeout pull request intentionally do not claim that a self-referential report hash is the repository's current `main`.
 
 Change control remained atomic and human-authorized:
 
-- atomic pull requests: `6`, `7`, and `8`;
+- campaign implementation pull requests: `6`, `7`, and `8`;
 - independent review references: `296`, `298`, and `301`;
 - human approval remained required; passing automation did not authorize a merge or release.
 

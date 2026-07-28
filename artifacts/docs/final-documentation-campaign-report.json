@@ -11,13 +11,13 @@
       "host": "GitHub",
       "url": "https://github.com/simongonzalezdc/handoff-cms"
     },
-    "mainCommit": "ee10e1de26f73ffcde8f6b88ce171786ff3e6315",
-    "forgejoMainCommit": "ee10e1de26f73ffcde8f6b88ce171786ff3e6315",
-    "githubMainCommit": "ee10e1de26f73ffcde8f6b88ce171786ff3e6315",
-    "mainHashesIdentical": true
+    "campaignBaselineCommit": "ee10e1de26f73ffcde8f6b88ce171786ff3e6315",
+    "forgejoCommitAtCampaignClose": "ee10e1de26f73ffcde8f6b88ce171786ff3e6315",
+    "githubCommitAtCampaignClose": "ee10e1de26f73ffcde8f6b88ce171786ff3e6315",
+    "hashesIdenticalAtCampaignClose": true
   },
   "changeControl": {
-    "atomicPullRequests": [6, 7, 8],
+    "campaignPullRequests": [6, 7, 8],
     "independentReviewRefs": [296, 298, 301],
     "humanApprovalRequired": true
   },
