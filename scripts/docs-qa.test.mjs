@@ -485,3 +485,23 @@ test('full report marks the absent base-ref check as skipped', async () => {
   assert.equal(findings['base-ref-zero-lag'].status, 'skip');
   assert.deepEqual(findings['closed-unions'], []);
 });
+
+test('documented union parser exposes stale members for inverse parity', async () => {
+  const linter = await import(LINTER_URL);
+  const document = [
+    '# Catalog',
+    '',
+    '## 1. Core — `ERROR_CODES` (2)',
+    '',
+    '| Code |',
+    '| --- |',
+    '| `E_REAL` |',
+    '| `E_STALE` |',
+    '',
+    '## Next',
+  ].join('\n');
+  assert.deepEqual(
+    [...linter.extractDocumentedUnionMembers(document, 'ERROR_CODES')],
+    ['E_REAL', 'E_STALE'],
+  );
+});

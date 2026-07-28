@@ -1556,6 +1556,22 @@ async function discoverClosedUnions() {
   return { discovered, typeAliases, unionMembers, typeMembers };
 }
 
+function extractDocumentedUnionMembers(source, symbol) {
+  const escapedSymbol = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const heading = new RegExp(`^##\\s+.*\\\`${escapedSymbol}\\\`.*$`, 'm');
+  const match = heading.exec(source);
+  if (match === null) return new Set();
+  const rest = source.slice(match.index + match[0].length);
+  const nextHeading = rest.search(/^##\s+/m);
+  const section = nextHeading < 0 ? rest : rest.slice(0, nextHeading);
+  const members = new Set();
+  for (const line of section.split(/\r?\n/)) {
+    const row = /^\|\s*`([^`]+)`\s*\|/.exec(line);
+    if (row !== null) members.add(row[1]);
+  }
+  return members;
+}
+
 async function errorCodeUniverseFindings() {
   const { discovered, typeAliases, unionMembers, typeMembers } = await discoverClosedUnions();
   const expected = [
@@ -1605,6 +1621,19 @@ async function errorCodeUniverseFindings() {
       }
     }
   }
+  for (const name of expected) {
+    const sourceMembers = new Set(unionMembers.get(name) ?? []);
+    for (const [locale, document] of [['en', docsEnglish], ['es', docsSpanish]]) {
+      for (const member of extractDocumentedUnionMembers(document, name)) {
+        if (!sourceMembers.has(member)) {
+          out.push({
+            file: `docs/reference/error-codes${locale === 'es' ? '.es' : ''}.md`,
+            detail: `documented member ${member} is absent from source union ${name}`,
+          });
+        }
+      }
+    }
+  }
   for (const name of expectedTypes) {
     if (!typeAliases.has(name)) {
       out.push({ file: 'packages/src-tree', detail: `documented type alias ${name} was not discovered in any exported type` });
@@ -1625,6 +1654,19 @@ async function errorCodeUniverseFindings() {
           file: 'docs/reference/error-codes.md',
           detail: `member ${member} from ${name} is not documented in both EN and ES error-code references`,
         });
+      }
+    }
+  }
+  for (const name of ['StorageErrorCode', 'CliErrorCode']) {
+    const sourceMembers = new Set(typeMembers.get(name) ?? []);
+    for (const [locale, document] of [['en', docsEnglish], ['es', docsSpanish]]) {
+      for (const member of extractDocumentedUnionMembers(document, name)) {
+        if (!sourceMembers.has(member)) {
+          out.push({
+            file: `docs/reference/error-codes${locale === 'es' ? '.es' : ''}.md`,
+            detail: `documented member ${member} is absent from source union ${name}`,
+          });
+        }
       }
     }
   }
@@ -1965,6 +2007,7 @@ export {
   extractConfigLoaderNames,
   stateMachineFindings,
   discoverClosedUnions,
+  extractDocumentedUnionMembers,
   errorCodeUniverseFindings,
   resolveBaseRefFiles,
   baseRefFindings,
