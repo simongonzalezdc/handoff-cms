@@ -188,6 +188,12 @@ function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
+export function resolveAudience(
+  env: Readonly<Record<string, string | undefined>>,
+): string {
+  return env['CMS_OIDC_AUDIENCE']?.trim() || 'cms-api-aud';
+}
+
 async function main(): Promise<number> {
   const argv = process.argv.slice(2);
   const env: Record<string, string | undefined> = {};
@@ -201,7 +207,7 @@ async function main(): Promise<number> {
     auth: defaultAuthSeam,
     now: { now: () => new Date() },
     uuid: { uuid: () => randomUUID() },
-    audience: 'cms-api-aud',
+    audience: resolveAudience(env),
     defaultDeviceVerificationUri: 'https://device.example/activate',
   };
   const result = await runCli({ argv, env, deps });

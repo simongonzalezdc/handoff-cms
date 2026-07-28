@@ -142,6 +142,24 @@ describe('authentication boundaries', () => {
       );
     }
   });
+
+  it('does not promote a service token with delegation claims to delegated human', async () => {
+    const context = await auth(
+      claims({
+        kind: 'service',
+        actorId: 'service-1',
+        sub: 'service-1',
+        delegatorId: 'human-1',
+        delegatedAt: '2026-07-27T11:30:00.000Z' as TokenClaims['delegatedAt'],
+        delegatedUntil: '2026-07-27T12:30:00.000Z' as TokenClaims['delegatedUntil'],
+      }),
+      resolver({ kind: 'service' }),
+    );
+    expect(context.identity.kind).toBe('service');
+    expect(() => requireHumanAuthority({ action: 'approve', identity: context.identity })).toThrowError(
+      expect.objectContaining({ code: 'E_SERVICE_APPROVAL_FORBIDDEN' }),
+    );
+  });
 });
 
 describe('current policy authorization', () => {

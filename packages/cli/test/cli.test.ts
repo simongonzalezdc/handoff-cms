@@ -40,7 +40,7 @@ import {
   type CliDeps,
   type DelegatedHumanSession,
 } from '../src/index.js';
-import { loadBrowserSeam } from '../src/bin.js';
+import { loadBrowserSeam, resolveAudience } from '../src/bin.js';
 
 interface FetchCall {
   readonly url: string;
@@ -251,6 +251,11 @@ const PROPOSAL_BODY = JSON.stringify({
 });
 
 describe('@cms/cli', () => {
+  it('resolves the delegated-device audience from the server OIDC configuration', () => {
+    expect(resolveAudience({ CMS_OIDC_AUDIENCE: 'handoff-cms-prod' })).toBe('handoff-cms-prod');
+    expect(resolveAudience({ CMS_OIDC_AUDIENCE: '  handoff-cms-staging  ' })).toBe('handoff-cms-staging');
+    expect(resolveAudience({})).toBe('cms-api-aud');
+  });
   it('help renders the command reference and exits 0', async () => {
     const fetch = makeFetch();
     const browser = makeBrowser(false);

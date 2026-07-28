@@ -165,6 +165,12 @@ export function buildServiceIdentity(input: BuildIdentityInput): Identity {
 }
 
 export function buildDelegatedHumanIdentity(input: BuildIdentityInput): Identity {
+  if (input.claims.kind !== 'human') {
+    throw new AuthorizationError({
+      code: 'E_TOKEN_MALFORMED',
+      message: 'delegated session token must identify a human actor',
+    });
+  }
   if (input.claims.delegatorId === undefined) {
     throw new AuthorizationError({
       code: 'E_TOKEN_MALFORMED',
@@ -443,15 +449,15 @@ interface BuildIdentityOptions {
 }
 
 function buildIdentity(opts: BuildIdentityOptions): Identity {
-  if (opts.claims.delegatorId !== undefined) {
-    return buildDelegatedHumanIdentity({
+  if (opts.declaredKind === 'service' || opts.claims.kind === 'service') {
+    return buildServiceIdentity({
       claims: opts.claims,
       displayName: opts.displayName,
       capabilities: opts.capabilities,
     });
   }
-  if (opts.declaredKind === 'service' || opts.claims.kind === 'service') {
-    return buildServiceIdentity({
+  if (opts.claims.delegatorId !== undefined) {
+    return buildDelegatedHumanIdentity({
       claims: opts.claims,
       displayName: opts.displayName,
       capabilities: opts.capabilities,
