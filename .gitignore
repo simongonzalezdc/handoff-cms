@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+.vite/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
+.gjc/
+artifacts/
+handoff.md
+playwright-report/
+test-results/
