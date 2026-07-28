@@ -1,0 +1,69 @@
+# ------------------------------------------------------------------
+# Docker build context for the @cms/server image.
+# Keep the build context small and deterministic; never ship .env,
+# node_modules, or coverage state into the daemon.
+# ------------------------------------------------------------------
+
+# Build outputs
+**/dist
+**/coverage
+**/*.tsbuildinfo
+**/.turbo
+**/.vite
+
+# Dependency trees — these are recreated inside the image by pnpm.
+**/node_modules
+**/.pnpm-store
+**/.pnpm-debug.log*
+
+# Local secrets and operator-only state.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+
+# VCS, IDE noise, and macOS metadata.
+.git
+.gitignore
+.gitattributes
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+
+# Editor / OS logs.
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test artefacts that should not affect the image.
+**/test
+**/tests
+**/__tests__
+**/vitest.config.ts
+**/.vite
+
+# Documentation, scratch and unrelated workspace glue that operators
+# do not need in a production container. The image rebuilds from the
+# lockfile so contributors can refresh locally as needed.
+docs/
+teach/
+.gjc/
+.scratch/
+launchpad.log
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+artifacts/
+handoff.md
+playwright-report/
+test-results/
+
+# Compose and infrastructure artefacts are not part of the server image.
+Dockerfile
+.dockerignore
+compose.yaml
+docker-compose*.yml

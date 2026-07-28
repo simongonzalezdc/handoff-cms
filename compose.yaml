@@ -1,0 +1,328 @@
+# =============================================================================
+# Handoff CMS — self-hosted compose stack (Apache-2.0, no proprietary services).
+#
+# Services:
+#   server   - @cms/server Node 22 ESM executable, built from ./Dockerfile
+#   postgres - Open-source Postgres 16, governance-data store
+#   minio    - Open-source S3-compatible object store for governed blobs
+#   migrations (one-shot) - applies canonical storage migrations before server
+#   minio-init (one-shot) - creates the private governed-media bucket
+#
+# Operator-managed values come from the process environment or Compose's
+# standard optional .env file. Required substitutions below fail closed.
+# Secret files are excluded from the Docker build context.
+# =============================================================================
+
+name: handoff-cms
+
+
+
+x-logging-default: &logging_default
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+    labels: "service,role"
+
+# -----------------------------------------------------------------------------
+# Data services and one-shot initializers live on an internal-only network.
+# The server joins both that network and a separate egress network for OIDC/JWKS.
+networks:
+  cms_data:
+    name: cms_data
+    driver: bridge
+    internal: true
+    attachable: true
+  cms_egress:
+    name: cms_egress
+    driver: bridge
+    internal: false
+    attachable: true
+
+# -----------------------------------------------------------------------------
+# Named volumes for durable state. Operators snapshot these; the application
+# never assumes a writable container filesystem.
+# -----------------------------------------------------------------------------
+volumes:
+  postgres_data:
+    name: cms_postgres_data
+  minio_data:
+    name: cms_minio_data
+
+# -----------------------------------------------------------------------------
+# Configuration defaults. Override per-service as needed.
+# -----------------------------------------------------------------------------
+x-cms-defaults: &cms_defaults
+  restart: unless-stopped
+  logging: *logging_default
+  pull_policy: missing
+
+# -----------------------------------------------------------------------------
+# Service: postgres  (only open-source PostgreSQL — no proprietary services)
+# -----------------------------------------------------------------------------
+services:
+  postgres:
+    <<: *cms_defaults
+    image: postgres:16-alpine
+    container_name: cms-postgres
+    hostname: postgres
+    networks:
+      - cms_data
+    ports: []                    # expose only when the operator explicitly wants
+    environment:
+      POSTGRES_DB:        ${CMS_POSTGRES_DB:-cms}
+      POSTGRES_USER:      ${CMS_POSTGRES_USER:-cms}
+      POSTGRES_PASSWORD:  ${CMS_POSTGRES_PASSWORD:?CMS_POSTGRES_PASSWORD must be set in .env}
+      POSTGRES_INITDB_ARGS: ${CMS_POSTGRES_INITDB_ARGS:--encoding=UTF-8 --locale=C}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CMS_POSTGRES_USER:-cms} -d ${CMS_POSTGRES_DB:-cms}"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+    read_only: false             # postgres needs a writable data dir
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+      - /run/postgresql:size=32m,mode=0755,uid=70,gid=70
+    user: postgres
+    stop_grace_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Service: migrations (one-shot, fail-closed before server start)
+  # ---------------------------------------------------------------------------
+  migrations:
+    <<: *cms_defaults
+    image: postgres:16-alpine
+    container_name: cms-migrations
+    networks:
+      - cms_data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      CMS_DATABASE_URL: ${CMS_DATABASE_URL:?CMS_DATABASE_URL must be set}
+    volumes:
+      - ./packages/storage/migrations:/migrations:ro
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        psql "$$CMS_DATABASE_URL" -v ON_ERROR_STOP=1 -c \
+          'CREATE TABLE IF NOT EXISTS public.cms_schema_migrations (revision text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())'
+        for migration in /migrations/*.sql; do
+          revision="$$(basename "$$migration")"
+          if printf "%s\n" "SELECT 1 FROM public.cms_schema_migrations WHERE revision = :'revision';" \
+            | psql "$$CMS_DATABASE_URL" -v revision="$$revision" -At | grep -q 1; then
+            continue
+          fi
+          {
+            cat "$$migration"
+            printf "\nINSERT INTO public.cms_schema_migrations (revision) VALUES (:'revision');\n"
+          } | psql "$$CMS_DATABASE_URL" -v revision="$$revision" -v ON_ERROR_STOP=1 -1 -f -
+        done
+    restart: "no"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+
+  # ---------------------------------------------------------------------------
+  # Service: minio  (Apache-2.0 object store; path-style for self-host)
+  # ---------------------------------------------------------------------------
+  minio:
+    <<: *cms_defaults
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    container_name: cms-minio
+    hostname: minio
+    networks:
+      - cms_data
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER:     ${CMS_MINIO_ROOT_USER:?CMS_MINIO_ROOT_USER must be set in .env}
+      MINIO_ROOT_PASSWORD: ${CMS_MINIO_ROOT_PASSWORD:?CMS_MINIO_ROOT_PASSWORD must be set in .env}
+      MINIO_BROWSER:       "off"
+      MINIO_API_CORS_ALLOW_ORIGIN: ""      # tighten via reverse proxy if exposed
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "mc alias set local http://127.0.0.1:9000 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\" >/dev/null && mc ready local"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Service: minio-init (one-shot)
+  # Creates a private bucket and converges a bucket-scoped application user.
+  # Re-runs replace only that dedicated user so rotated credentials take effect
+  # before the server starts; MinIO root credentials never reach the app.
+  # ---------------------------------------------------------------------------
+  minio-init:
+    <<: *cms_defaults
+    image: minio/mc:RELEASE.2024-11-21T17-21-54Z
+    container_name: cms-minio-init
+    networks:
+      - cms_data
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        mc alias set local http://minio:9000 \
+          "$$CMS_MINIO_ROOT_USER" "$$CMS_MINIO_ROOT_PASSWORD"
+        mc mb --ignore-existing local/"$$CMS_OBJECT_BUCKET"
+        mc anonymous set none local/"$$CMS_OBJECT_BUCKET"
+        cat > /tmp/cms-app-policy.json <<EOF
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetBucketLocation", "s3:ListBucket", "s3:ListBucketMultipartUploads"],
+              "Resource": ["arn:aws:s3:::$$CMS_OBJECT_BUCKET"]
+            },
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:AbortMultipartUpload", "s3:ListMultipartUploadParts"],
+              "Resource": ["arn:aws:s3:::$$CMS_OBJECT_BUCKET/*"]
+            }
+          ]
+        }
+        EOF
+        mc admin policy create local cms-app /tmp/cms-app-policy.json
+        if mc admin user info local "$$CMS_OBJECT_ACCESS_KEY_ID" >/tmp/cms-user-info 2>/tmp/cms-user-error; then
+          mc admin user remove local "$$CMS_OBJECT_ACCESS_KEY_ID"
+        fi
+        mc admin user add local \
+          "$$CMS_OBJECT_ACCESS_KEY_ID" "$$CMS_OBJECT_SECRET_ACCESS_KEY"
+        mc admin policy attach local cms-app --user "$$CMS_OBJECT_ACCESS_KEY_ID"
+        echo "minio-init: bucket and scoped application user are ready."
+    environment:
+      CMS_MINIO_ROOT_USER:          ${CMS_MINIO_ROOT_USER:?CMS_MINIO_ROOT_USER must be set}
+      CMS_MINIO_ROOT_PASSWORD:      ${CMS_MINIO_ROOT_PASSWORD:?CMS_MINIO_ROOT_PASSWORD must be set}
+      CMS_OBJECT_BUCKET:            ${CMS_OBJECT_BUCKET:-cms-content}
+      CMS_OBJECT_ACCESS_KEY_ID:     ${CMS_OBJECT_ACCESS_KEY_ID:?CMS_OBJECT_ACCESS_KEY_ID must be set}
+      CMS_OBJECT_SECRET_ACCESS_KEY: ${CMS_OBJECT_SECRET_ACCESS_KEY:?CMS_OBJECT_SECRET_ACCESS_KEY must be set}
+    restart: "no"                 # explicit; do not resurrect
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+
+  # ---------------------------------------------------------------------------
+  # Service: server  (@cms/server, Apache-2.0, built from source)
+  # ---------------------------------------------------------------------------
+  server:
+    <<: *cms_defaults
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NODE_VERSION=22.20.0
+        - PNPM_VERSION=9.15.0
+    image: cms-server:local
+    container_name: cms-server
+    hostname: server
+    networks:
+      - cms_data
+      - cms_egress
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    # Compose reads operator-managed values from the process environment or
+    # its standard optional .env file. Required substitutions below fail
+    # closed without forcing one secret-delivery mechanism.
+    environment:
+      CMS_NODE_ENV:                          ${CMS_NODE_ENV:-production}
+      CMS_HOSTNAME:                          ${CMS_HOSTNAME:-0.0.0.0}
+      CMS_PORT:                              ${CMS_PORT:-8080}
+      CMS_PUBLIC_URL:                        ${CMS_PUBLIC_URL:?CMS_PUBLIC_URL must be set in .env}
+      CMS_DATABASE_URL:                      ${CMS_DATABASE_URL:?CMS_DATABASE_URL must be set in .env}
+      CMS_OIDC_ISSUER:                       ${CMS_OIDC_ISSUER:?CMS_OIDC_ISSUER must be set in .env}
+      CMS_OIDC_AUDIENCE:                     ${CMS_OIDC_AUDIENCE:?CMS_OIDC_AUDIENCE must be set in .env}
+      CMS_OIDC_JWKS_URL:                     ${CMS_OIDC_JWKS_URL:?CMS_OIDC_JWKS_URL must be set in .env}
+      CMS_OIDC_ALGORITHMS:                   ${CMS_OIDC_ALGORITHMS:-RS256,ES256}
+      CMS_OIDC_JWKS_CACHE_SECONDS:           ${CMS_OIDC_JWKS_CACHE_SECONDS:-300}
+      CMS_OIDC_FETCH_TIMEOUT_MS:             ${CMS_OIDC_FETCH_TIMEOUT_MS:-5000}
+      CMS_OBJECT_ENDPOINT:                   ${CMS_OBJECT_ENDPOINT:-http://minio:9000}
+      CMS_OBJECT_BUCKET:                     ${CMS_OBJECT_BUCKET:?CMS_OBJECT_BUCKET must be set in .env}
+      CMS_OBJECT_ACCESS_KEY_ID:              ${CMS_OBJECT_ACCESS_KEY_ID:?CMS_OBJECT_ACCESS_KEY_ID must be set in .env}
+      CMS_OBJECT_SECRET_ACCESS_KEY:          ${CMS_OBJECT_SECRET_ACCESS_KEY:?CMS_OBJECT_SECRET_ACCESS_KEY must be set in .env}
+      CMS_OBJECT_REGION:                     ${CMS_OBJECT_REGION:-us-east-1}
+      CMS_OBJECT_FORCE_PATH_STYLE:           ${CMS_OBJECT_FORCE_PATH_STYLE:-true}
+      CMS_QUOTA_REQUEST_BYTES_CAP:           ${CMS_QUOTA_REQUEST_BYTES_CAP:-1048576}
+      CMS_QUOTA_TENANT_REQUESTS_PER_MINUTE:  ${CMS_QUOTA_TENANT_REQUESTS_PER_MINUTE:-120}
+      CMS_LOG_LEVEL:                         ${CMS_LOG_LEVEL:-info}
+      CMS_DEFAULT_LOCALE:                    ${CMS_DEFAULT_LOCALE:-en}
+      # The healthcheck reads `PORT` (and `CMS_PORT`) from the
+      # server's environment. Exporting `PORT` from the same value
+      # the application binds on guarantees the probe target and
+      # the listening port cannot silently diverge.
+      PORT:                                   ${CMS_PORT:-8080}
+    # The published port MUST track the application bind port; a
+    # mismatch yields a probe that points at a port the app never
+    # bound, producing a perma-unhealthy container that the operator
+    # has to debug with no signal in the logs.
+    ports:
+      - "${CMS_BIND_HOST:-127.0.0.1}:${CMS_BIND_PORT:-8080}:${CMS_PORT:-8080}"
+    volumes:
+      # Mount the canonical migration source read-only inside the container
+      # so a managed operator can run `pnpm db:migrate` against the cluster
+      # without rebuilding the image. Not auto-applied.
+      - ./packages/storage/migrations:/home/cms/app/operator-migrations:ro
+    expose:
+      - "${CMS_PORT:-8080}"
+    healthcheck:
+      test: ["CMD", "node", "/usr/local/bin/self-host-healthcheck.mjs", "live"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+    # read_only: true is intentionally not set because @cms/server writes
+    # nothing at runtime; ops can flip it on via override after a write-
+    # audit. Keep tmpfs mounts available for any adapter scratch space.
+    stop_grace_period: 30s
