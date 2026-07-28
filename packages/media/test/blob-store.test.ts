@@ -384,6 +384,7 @@ describe('@cms/media/blob-store — S3BlobStore (injected client)', () => {
     expect(new TextDecoder().decode(got)).toBe('s3-image-bytes');
     const head = await store.stat(key);
     expect(head.sizeBytes).toBe(body.byteLength);
+    expect(head.sha256Hex).toBe(put.sha256Hex);
     expect(await store.delete(key)).toBeUndefined();
     expect(await store.exists(key)).toBe(false);
   });

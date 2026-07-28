@@ -960,18 +960,20 @@ export class S3BlobStore implements BlobStore {
     this.assertTenant(key);
     const objectKey = this.toObjectKey(key);
     try {
-      const head = await this.client.headObject({ bucket: this.bucket, key: objectKey });
+      const object = await this.client.getObject({ bucket: this.bucket, key: objectKey });
+      const sha256 = createHash('sha256');
+      sha256.update(object.body);
       return {
         key,
-        sizeBytes: head.sizeBytes,
-        sha256Hex: 'etag:' + (head.etag ?? ''),
-        contentType: head.contentType,
-        lastModifiedAt: head.lastModified ?? this.now().toISOString(),
+        sizeBytes: object.body.byteLength,
+        sha256Hex: sha256.digest('hex'),
+        contentType: object.contentType,
+        lastModifiedAt: object.lastModified ?? this.now().toISOString(),
       };
     } catch (cause) {
       const wrapped = this.translateError(cause, objectKey);
       if (wrapped) throw wrapped;
-      throw new BlobStoreError('E_BACKEND_FAILURE', `S3 head failed for ${JSON.stringify(objectKey)}`, { cause });
+      throw new BlobStoreError('E_BACKEND_FAILURE', `S3 stat failed for ${JSON.stringify(objectKey)}`, { cause });
     }
   }
 
