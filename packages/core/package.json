@@ -1,0 +1,28 @@
+{
+  "name": "@cms/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure, I/O-free governance kernel for the Handoff CMS: domain invariants, state machine, and policy engine. Agents, services, and MCP never approve or publish; this package only describes the rules.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. --config vitest.config.ts packages/core/test"
+  },
+  "files": [
+    "dist",
+    "src"
+  ]
+}

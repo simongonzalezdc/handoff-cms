@@ -1,0 +1,16 @@
+{
+  "allowed": ["Apache-2.0", "MIT", "BSD-2-Clause", "BSD-3-Clause", "ISC"],
+  "withExceptions": [],
+  "devToolExceptions": [
+    {
+      "package": "@axe-core/playwright",
+      "license": "MPL-2.0",
+      "rationale": "Test-only WCAG 2.2 AA browser audit tooling; not shipped in the functional core."
+    },
+    {
+      "package": "axe-core",
+      "license": "MPL-2.0",
+      "rationale": "Transitive engine for the test-only WCAG 2.2 AA browser audit; not shipped in the functional core."
+    }
+  ]
+}
