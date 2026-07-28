@@ -1,0 +1,35 @@
+{
+  "name": "@cms/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Thin CLI projection over the authoritative @cms/api HTTP surface. Propose and read commands use configured credentials; approve/publish/rollback require a fresh interactive delegated-human session obtained via the injected browser seam. No duplicated policy/state logic and no local storage bypass.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./bin": "./dist/bin.js"
+  },
+  "bin": {
+    "cms": "./dist/bin.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. --config vitest.config.ts packages/cli/test"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "dependencies": {
+    "@cms/api": "workspace:*"
+  }
+}

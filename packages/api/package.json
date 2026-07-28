@@ -1,0 +1,37 @@
+{
+  "name": "@cms/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Authoritative Hono/OpenAPI 3.1 transport over @cms/core and @cms/storage. Sole authority surface for web/CLI/MCP; thin transport, never reimplementing policy or state-machine logic. RFC 9457 Problem Details localized in en/es; idempotent writes; optimistic concurrency; tenant-scoped; human-authorization-only for approve/publish/rollback; canonical-written vs live-propagated deploy receipts; one-action rollback authorized by current policy without credential replay or impersonation.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./openapi": {
+      "types": "./dist/openapi.d.ts",
+      "import": "./dist/openapi.js"
+    }
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. --config vitest.config.ts packages/api/test"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "dependencies": {
+    "@cms/core": "workspace:*",
+    "@cms/storage": "workspace:*",
+    "hono": "^4.6.14"
+  }
+}
