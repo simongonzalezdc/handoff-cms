@@ -1,0 +1,67 @@
+name: docs-qa
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+# The docs-QA workflow is documentation-only. It runs no unsafe operations,
+# reads no secrets, and writes no artifact. It is the canonical CI gate on
+# the Forgejo repository; the GitHub mirror runs the equivalent workflow at
+# `.github/workflows/docs-qa.yml`. Neither workflow is allowed to push or to
+# mutate the repository. The merge action is the reviewer's, not the
+# workflow's.
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs-qa:
+    name: docs:check / test:docs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build source-derived OpenAPI
+        run: pnpm --filter @cms/api... build
+
+      - name: Run docs:check with same-PR locale gate
+        if: forgejo.event_name == 'pull_request'
+        env:
+          CI: 'true'
+        run: pnpm docs:check --base-ref "${{ forgejo.event.pull_request.base.sha }}"
+
+      - name: Run docs:check on merged main
+        if: forgejo.event_name != 'pull_request'
+        env:
+          CI: 'true'
+        run: pnpm docs:check
+
+      - name: Run test:docs
+        env:
+          CI: 'true'
+        run: pnpm test:docs
