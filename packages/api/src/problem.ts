@@ -232,15 +232,20 @@ export function negotiateLocale(acceptLanguage: string | null | undefined): Loca
     .map((entry, index) => {
       const [language = '', ...parameters] = entry.trim().split(';');
       const primary = language.trim().split('-')[0]?.toLowerCase() ?? '';
-      const qualityParameter = parameters.find((parameter) => parameter.trim().startsWith('q='));
+      const qualityParameter = parameters.find((parameter) => parameter.trim().toLowerCase().startsWith('q='));
       const parsedQuality = qualityParameter === undefined
         ? 1
         : Number.parseFloat(qualityParameter.trim().slice(2));
-      const quality = Number.isFinite(parsedQuality) ? parsedQuality : 0;
+      const quality = Number.isFinite(parsedQuality)
+        ? Math.min(1, Math.max(0, parsedQuality))
+        : 0;
       return { primary, quality, index };
     })
     .filter((candidate) => candidate.quality > 0)
-    .sort((left, right) => right.quality - left.quality || left.index - right.index);
+    .sort((left, right) =>
+      right.quality - left.quality
+      || Number(left.primary === '*') - Number(right.primary === '*')
+      || left.index - right.index);
 
   for (const candidate of candidates) {
     if (isSupportedLocale(candidate.primary)) return candidate.primary;

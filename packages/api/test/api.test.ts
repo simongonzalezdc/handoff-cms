@@ -819,6 +819,13 @@ describe('Hono authority API', () => {
     );
     expect(wildcard.status).toBe(200);
     expect(await wildcard.json()).toMatchObject({ status: 'ok', locale: 'en' });
+    const explicitPeerAtWildcardQuality = await app.fetch(
+      new Request('https://cms.example.test/v1/health', {
+        headers: { 'accept-language': '*;q=0.5, es;q=0.5' },
+      }),
+    );
+    expect(explicitPeerAtWildcardQuality.status).toBe(200);
+    expect(await explicitPeerAtWildcardQuality.json()).toMatchObject({ status: 'ok', locale: 'es' });
 
     const unsupported = await app.fetch(
       new Request('https://cms.example.test/v1/health', {
