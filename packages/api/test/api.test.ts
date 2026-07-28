@@ -792,21 +792,52 @@ describe('Hono authority API', () => {
     expect(failed.state.deployStatuses).toEqual(['failed']);
   });
 
-  it('returns unauthenticated /v1/health with the negotiated locale', async () => {
+  it('defaults a missing locale, negotiates supported peers, and rejects unsupported locales', async () => {
     const fixture = services();
     const app = createApi({ services: fixture.services });
-    const en = await app.fetch(new Request('https://cms.example.test/v1/health'));
-    expect(en.status).toBe(200);
-    expect(en.headers.get('content-type')).toContain('application/json');
-    const enBody = await en.json();
-    expect(enBody).toMatchObject({ status: 'ok', service: '@cms/api', locale: 'en' });
 
-    const es = await app.fetch(
-      new Request('https://cms.example.test/v1/health', { headers: { 'accept-language': 'es' } }),
+    const defaulted = await app.fetch(new Request('https://cms.example.test/v1/health'));
+    expect(defaulted.status).toBe(200);
+    expect(defaulted.headers.get('content-type')).toContain('application/json');
+    expect(await defaulted.json()).toMatchObject({
+      status: 'ok',
+      service: '@cms/api',
+      locale: 'en',
+    });
+
+    const negotiated = await app.fetch(
+      new Request('https://cms.example.test/v1/health', {
+        headers: { 'accept-language': 'en-GB;q=0.4, es-MX;q=0.9' },
+      }),
     );
-    expect(es.status).toBe(200);
-    const esBody = await es.json();
-    expect(esBody).toMatchObject({ status: 'ok', locale: 'es' });
+    expect(negotiated.status).toBe(200);
+    expect(await negotiated.json()).toMatchObject({ status: 'ok', locale: 'es' });
+    const wildcard = await app.fetch(
+      new Request('https://cms.example.test/v1/health', {
+        headers: { 'accept-language': '*' },
+      }),
+    );
+    expect(wildcard.status).toBe(200);
+    expect(await wildcard.json()).toMatchObject({ status: 'ok', locale: 'en' });
+    const explicitPeerAtWildcardQuality = await app.fetch(
+      new Request('https://cms.example.test/v1/health', {
+        headers: { 'accept-language': '*;q=0.5, es;q=0.5' },
+      }),
+    );
+    expect(explicitPeerAtWildcardQuality.status).toBe(200);
+    expect(await explicitPeerAtWildcardQuality.json()).toMatchObject({ status: 'ok', locale: 'es' });
+
+    const unsupported = await app.fetch(
+      new Request('https://cms.example.test/v1/health', {
+        headers: { 'accept-language': 'fr-FR, de;q=0.8' },
+      }),
+    );
+    expect(unsupported.status).toBe(400);
+    expect(await unsupported.json()).toMatchObject({
+      code: 'E_BAD_LOCALE',
+      locale: 'en',
+      status: 400,
+    });
   });
 
   it('refuses a deploy receipt when identity.id does not match adapterId', async () => {
