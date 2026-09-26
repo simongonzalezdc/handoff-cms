@@ -16,7 +16,7 @@
 | Schema version | `1` |
 | Kind | `api-package-test-report` |
 | Verified at | `2026-07-27T21:18:49.543Z` |
-| Workspace | `/Users/simongonzalezdecruz/workspaces/handoff-cms` |
+| Workspace | `~/workspaces/handoff-cms` |
 
 ## Commands (exactly seven)
 

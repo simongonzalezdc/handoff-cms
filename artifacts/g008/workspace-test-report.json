@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "api-package-test-report",
   "verifiedAt": "2026-07-27T21:18:49.543Z",
-  "workspace": "/Users/simongonzalezdecruz/workspaces/handoff-cms",
+  "workspace": "~/workspaces/handoff-cms",
   "results": [
     {
       "command": "pnpm typecheck",
