@@ -23,8 +23,8 @@
   },
   "externalAttestation": {
     "reviewRefs": "Verified through independent GJC agent receipts during the session.",
-    "productLedger": "/Users/simongonzalezdecruz/workspaces/handoff-cms/.gjc/_session-019fa603-535a-7000-a14d-a2d012f92e38/ultragoal/ledger.jsonl",
-    "launchpadLedger": "/Users/simongonzalezdecruz/launchpad/.gjc/_session-019fa603-535a-7000-a14d-a2d012f92e38/ultragoal/ledger.jsonl"
+    "productLedger": "~/workspaces/handoff-cms/.gjc/_session-019fa603-535a-7000-a14d-a2d012f92e38/ultragoal/ledger.jsonl",
+    "launchpadLedger": "~/launchpad/.gjc/_session-019fa603-535a-7000-a14d-a2d012f92e38/ultragoal/ledger.jsonl"
   },
   "receipts": {
     "finalAggregateProduct": {
